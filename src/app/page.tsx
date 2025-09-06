@@ -1,103 +1,173 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+const questions = [
+  {
+    id: "q1",
+    question: "Which JavaScript framework is used for building UI components?",
+    options: ["React", "Spring Boot", "Django", "Laravel"],
+  },
+  {
+    id: "q2",
+    question: "Which database is commonly used with the MERN stack?",
+    options: ["PostgreSQL", "MongoDB", "MySQL", "SQLite"],
+  },
+  {
+    id: "q3",
+    question: "Which protocol is primarily used for secure communication?",
+    options: ["HTTP", "FTP", "HTTPS", "SMTP"],
+  },
+  {
+    id: "q4",
+    question: "Which Node.js package is commonly used for REST APIs?",
+    options: ["Express.js", "Flask", "Rails", "ASP.NET"],
+  },
+  {
+    id: "q5",
+    question: "Which cloud platform is known for serverless functions?",
+    options: ["AWS Lambda", "Apache Tomcat", "Nginx", "Heroku"],
+  },
+];
+
+export default function QuizPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  const current = questions[step === 0 ? 0 : step - 1];
+
+  const handleOptionSelect = (opt: string) => {
+    setAnswers({ ...answers, [current.id]: opt });
+  };
+
+  const handleNext = async () => {
+    if (step === 0 && (!name || !email)) {
+      alert("Please enter your name and email");
+      return;
+    }
+    if (!answers[current.id] && step > 0) {
+      alert("Please select an option");
+      return;
+    }
+
+    if (step < questions.length) {
+      setStep(step + 1);
+    } else {
+      // Final submit
+      const answersArray = Object.values(answers);
+
+      const payload = { name, email, answers: answersArray };
+
+      console.log(answers);
+
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        alert("Something went wrong!");
+        return;
+      }
+
+      const data = await res.json();
+
+      await fetch("/api/sendEmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email }),
+      });
+
+      router.push(`/result/${data.id}`);
+    }
+  };
+
+  const handlePrev = () => {
+    if (step > 0) setStep(step - 1);
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex flex-col min-h-screen items-center justify-center bg-gradient-to-r from-white via-orange-300 to-white px-4 text-neutral-950">
+      <div className="mb-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 rounded">
+        <p className="text-sm text-yellow-800">
+          ⚠️ Note: ZeptoMail integration has been fully implemented in this project.
+          However, since a custom domain is required to configure a live ZeptoMail account,
+          the API key is not added here.
+        </p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+      <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl">
+        {step === 0 ? (
+          <>
+            <h1 className="mb-6 text-2xl font-bold text-gray-800">
+              Welcome to the Quiz
+            </h1>
+            <input
+              type="text"
+              placeholder="Your Name"
+              className="mb-4 w-full rounded-lg border p-3"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <input
+              type="email"
+              placeholder="Your Email"
+              className="mb-6 w-full rounded-lg border p-3"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </>
+        ) : (
+          <>
+            <h1 className="mb-6 text-2xl font-bold text-gray-800">
+              Question {step} of {questions.length}
+            </h1>
+            <p className="mb-6 text-lg text-gray-700">{current?.question}</p>
+            <div className="space-y-4">
+              {current.options.map((opt) => (
+                <label
+                  key={opt}
+                  className={`flex cursor-pointer items-center rounded-lg border p-3 transition ${answers[current.id] === opt
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-300"
+                    }`}
+                >
+                  <input
+                    type="radio"
+                    name={current.id}
+                    value={opt}
+                    checked={answers[current.id] === opt}
+                    onChange={() => handleOptionSelect(opt)}
+                    className="mr-3"
+                  />
+                  <span className="text-gray-800">{opt}</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="mt-8 flex justify-between">
+          <button
+            onClick={handlePrev}
+            disabled={step === 0}
+            className="rounded-xl bg-gray-400 px-6 py-2 text-white shadow-md hover:bg-gray-500 disabled:opacity-50 cursor-pointer"
           >
-            Read our docs
-          </a>
+            ← Previous
+          </button>
+          <button
+            onClick={handleNext}
+            className="rounded-xl bg-orange-600 px-6 py-2 text-white shadow-md hover:bg-orange-700 cursor-pointer"
+          >
+            {step === questions.length ? "Submit" : "Next →"}
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
